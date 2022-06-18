@@ -1,9 +1,14 @@
 from flask import Blueprint, views, render_template, request, session
 from flask import url_for, redirect
-from .forms import LoginForm
-from .models import CMSUser
-from .decorators import login_required
+
 import config
+from apps.models import BoardModel
+from exts import db
+from utils import restful, xjson
+from .decorators import login_required
+from .forms import LoginForm, AddBannerForm, UpdateBannerForm, UpdateBoardForm, AddBoardsForm
+from .models import CMSUser
+from ..models import BannerModel
 
 bp = Blueprint("cms", __name__, url_prefix='/cms')
 
@@ -51,7 +56,7 @@ def logout():
     return redirect(url_for('cms.login'))
 
 
-@bp.route('/profile/')
+@bp.route('/profile/', )
 @login_required
 def profile():
     return render_template('cms/cms_profile.html')
@@ -68,3 +73,94 @@ class ResetPwdView(views.MethodView):
 
 
 bp.add_url_rule('/resetpwd/', view_func=ResetPwdView.as_view('resetpwd'))
+
+
+# 轮播图
+@bp.route('/banners/')
+@login_required
+def banners():
+    banners = BannerModel.query.order_by(BannerModel.priority.desc()).all()
+    return render_template('cms/cms_banners.html', banners=banners)
+
+
+@bp.route('/abanner/', methods=['POST'])
+@login_required
+def abanner():
+    form = AddBannerForm(request.form)
+    if form.validate():
+        name = form.name.data
+        image_url = form.image_url.data
+        link_url = form.link_url.data
+        priority = form.priority.data
+        banner = BannerModel(name=name, image_url=image_url, link_url=link_url, priority=priority)
+        db.session.add(banner)
+        db.session.commit()
+        return xjson.json_success()
+    else:
+        return xjson.json_param_error(message=form.get_error())
+
+
+@bp.route('/ubanner/', methods=['POST'])
+def ubanner():
+    form = UpdateBannerForm(request.form)
+    if form.validate():
+        banner_id = form.banner_id.data
+        name = form.name.data
+        img_url = form.img_url.data
+        link_url = form.link_url.data
+        priority = form.priority.data
+        banner = BannerModel.query.get(banner_id)
+        if banner:
+            banner.name = name
+            banner.img_url = img_url
+            banner.link_url = link_url
+            banner.priority = priority
+            db.session.commit()
+            return restful.success()
+        else:
+            return restful.params_error(message='没有这个轮播图')
+    else:
+        return restful.params_error(message=form.get_error())
+
+
+# 板块管理
+@bp.route('/boards/')
+@login_required
+def boards():
+    all_boards = BoardModel.query.all()
+    context = {
+        'boards': all_boards
+    }
+    return render_template('cms/cms_boards.html', **context)
+
+
+@bp.route('/uboard/', methods=['POST'])
+@login_required
+def uboard():
+    update_board_form = UpdateBoardForm(request.form)
+    if update_board_form.validate():
+        board_id = update_board_form.board_id.data
+        name = update_board_form.name.data
+        if board_id:
+            board = BoardModel.query.get(board_id)
+            board.name = name
+            db.session.commit()
+            return xjson.json_success(message='更新成功')
+        else:
+            return xjson.json_param_error(message='板块不存在')
+    else:
+        return xjson.json_param_error(message=update_board_form.get_error())
+
+
+@bp.route('/dboard/', methods=['POST'])
+@login_required
+def dboard():
+    board_id = request.form.get('board_id')
+    if not board_id:
+        return xjson.json_param_error(message='请传入板块id')
+    board = BoardModel.query.get(board_id)
+    if not board:
+        return xjson.json_param_error(message='没有这个板块')
+    db.session.delete(board)
+    db.session.commit()
+    return xjson.json_success(message='删除板块成功')

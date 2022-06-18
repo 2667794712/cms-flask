@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block head %}
-    {%  from 'common/_macros.html' import static %}
+    {%  from 'common/_macros.html' import templates %}
 <script src="{{ static('cms/js/resetpwd.js')}}"></script>
 <style>
     .form-container{
@@ -20,6 +20,7 @@
 
 {% block main_content %}
     <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-container">
             <div class="form-group">
                 <div class="input-group">

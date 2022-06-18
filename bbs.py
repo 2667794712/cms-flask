@@ -4,7 +4,7 @@ from apps.front import bp as front_bp
 from apps.common import bp as common_bp
 import config
 from exts import db
-
+from flask_wtf import CSRFProtect
 
 
 def create_app():
@@ -14,6 +14,7 @@ def create_app():
     app.register_blueprint(front_bp)
     app.register_blueprint(common_bp)
     db.init_app(app)
+    CSRFProtect(app)
     return app
 
 

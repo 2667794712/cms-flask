@@ -1,4 +1,5 @@
-# encoding: utf-8
+# utils/restful.py
+
 from flask import jsonify
 
 
@@ -26,4 +27,4 @@ def params_error(message=""):
 
 
 def server_error(message=""):
-    return restful_result(code=HttpCode.servererror, message=message or '服务器内部错误', data=None)
+    return restful_result(code=HttpCode.servererror, message=message or "服务器内部错误", data=None)

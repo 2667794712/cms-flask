@@ -1,4 +1,4 @@
-from flask import Blueprint, views, render_template, request, session
+from flask import Blueprint, views, render_template, request, session, jsonify, g
 from flask import url_for, redirect
 
 import config
@@ -6,7 +6,7 @@ from apps.models import BoardModel
 from exts import db
 from utils import restful, xjson
 from .decorators import login_required
-from .forms import LoginForm, AddBannerForm, UpdateBannerForm, UpdateBoardForm, AddBoardsForm
+from .forms import LoginForm, AddBannerForm, UpdateBannerForm, ResetpwdForm
 from .models import CMSUser
 from ..models import BannerModel
 
@@ -69,7 +69,22 @@ class ResetPwdView(views.MethodView):
         return render_template('cms/cms_resetpwd.html')
 
     def post(self):
-        pass
+        resetpwd_form = ResetpwdForm(request.form)
+        if resetpwd_form.validate():
+            oldpwd = resetpwd_form.oldpwd.data
+            newpwd = resetpwd_form.newpwd.data
+            user = g.cms_user
+            if user.check_password(oldpwd):
+                user.password = newpwd
+                db.session.commit()
+                # 因为接受的是ajax,所以这里使用jsonify返回数据
+                # 返回code字段表示状态码，message信息提示
+                return jsonify({"code": 200, "message": "修改成功"})
+            else:
+                return jsonify({"code": 400, "message": "原密码错误"})
+        else:
+            message = resetpwd_form.get_error()
+            return jsonify({"code": 400, "message": message})
 
 
 bp.add_url_rule('/resetpwd/', view_func=ResetPwdView.as_view('resetpwd'))
@@ -134,22 +149,22 @@ def boards():
     return render_template('cms/cms_boards.html', **context)
 
 
-@bp.route('/uboard/', methods=['POST'])
-@login_required
-def uboard():
-    update_board_form = UpdateBoardForm(request.form)
-    if update_board_form.validate():
-        board_id = update_board_form.board_id.data
-        name = update_board_form.name.data
-        if board_id:
-            board = BoardModel.query.get(board_id)
-            board.name = name
-            db.session.commit()
-            return xjson.json_success(message='更新成功')
-        else:
-            return xjson.json_param_error(message='板块不存在')
-    else:
-        return xjson.json_param_error(message=update_board_form.get_error())
+# @bp.route('/uboard/', methods=['POST'])
+# @login_required
+# def uboard():
+#     update_board_form = UpdateBoardForm(request.form)
+#     if update_board_form.validate():
+#         board_id = update_board_form.board_id.data
+#         name = update_board_form.name.data
+#         if board_id:
+#             board = BoardModel.query.get(board_id)
+#             board.name = name
+#             db.session.commit()
+#             return xjson.json_success(message='更新成功')
+#         else:
+#             return xjson.json_param_error(message='板块不存在')
+#     else:
+#         return xjson.json_param_error(message=update_board_form.get_error())
 
 
 @bp.route('/dboard/', methods=['POST'])

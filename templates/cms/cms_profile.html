@@ -20,15 +20,24 @@
             <td>邮箱：</td>
             <td>{{ user.email }}</td>
         </tr>
-        <tr>
-            <td>角色：</td>
-            <td>xxxxxxx</td>
-        </tr>
-        <tr>
-            <td>权限：</td>
-            <td>xxxxxx</td>
-        </tr>
-        <tr>
+         <tr>
+                <td>角色：</td>
+                <td>
+                    {% for role in user.roles %}
+                        {{ role.name }}
+                        {% if not loop.last %},{% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td>权限：</td>
+                <td>
+                     {% for role in user.roles %}
+                        {{ role.desc }}
+                        {% if not loop.last %}/{% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
             <td>加入时间：</td>
             <td>{{ user.join_time }}</td>
         </tr>
